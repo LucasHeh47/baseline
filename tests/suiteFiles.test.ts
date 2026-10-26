@@ -9,6 +9,7 @@ describe('suite files', () => {
     expect(appFor('stone.png')).toBe('pixelline');
     expect(appFor('hero.ora')).toBe('pixelline');
     expect(appFor('art.PSD')).toBe('pixelline');
+    expect(appFor('C:\\Videos\\Trip.frameline')).toBe('frameline');
     expect(appFor('notes.txt')).toBeNull();
   });
 

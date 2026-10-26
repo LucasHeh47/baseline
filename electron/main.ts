@@ -1,10 +1,10 @@
 // Baseline's main process: the window, the suite's apps (finding and starting them), and the
-// recent files of Gridline and Pixelline (read from each app's own list, so nothing is copied).
+// recent files of Gridline, Pixelline and Frameline (read from each app's own list, so nothing is copied).
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, type IpcMainInvokeEvent } from 'electron';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { SuiteAppId, SuiteFile } from '../src/shared/api';
+import type { SuiteAppId, SuiteFile, WorkApp } from '../src/shared/api';
 import { APP_NAMES, compareVersions, type ManagedApp } from '../src/shared/releases';
 import { appFor, OPENS } from '../src/shared/suiteFiles';
 import { download, exeVersion, installedCopy, isRunning, latestRelease, runInstaller } from './installer';
@@ -14,7 +14,7 @@ import { setupUpdates } from './updater';
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const SMOKE_SCREENSHOT = process.env.BASELINE_SCREENSHOT;
 
-const APP_FOLDERS: Record<'gridline' | 'pixelline', string> = { gridline: 'Gridline', pixelline: 'Pixelline' };
+const APP_FOLDERS: Record<WorkApp, string> = { gridline: 'Gridline', pixelline: 'Pixelline', frameline: 'Frameline' };
 
 /** Where the apps keep their settings (tests point this somewhere else). */
 const appData = () => process.env.BASELINE_APPDATA || app.getPath('appData');
@@ -29,7 +29,7 @@ function customExes(extra: unknown): Partial<Record<SuiteAppId, string>> {
   const out: Partial<Record<SuiteAppId, string>> = {};
   if (!extra || typeof extra !== 'object') return out;
   for (const [k, v] of Object.entries(extra as Record<string, unknown>)) {
-    if (['baseline', 'gridline', 'pixelline'].includes(k) && typeof v === 'string' && /\.exe$/i.test(v) && path.isAbsolute(v) && existsSync(v)) out[k as SuiteAppId] = v;
+    if (['baseline', 'gridline', 'pixelline', 'frameline'].includes(k) && typeof v === 'string' && /\.exe$/i.test(v) && path.isAbsolute(v) && existsSync(v)) out[k as SuiteAppId] = v;
   }
   return out;
 }
@@ -43,9 +43,9 @@ interface Recent {
   pinned?: boolean;
 }
 
-const recentFile = (id: 'gridline' | 'pixelline') => path.join(appData(), APP_FOLDERS[id], 'recent.json');
+const recentFile = (id: WorkApp) => path.join(appData(), APP_FOLDERS[id], 'recent.json');
 
-async function readRecent(id: 'gridline' | 'pixelline'): Promise<Recent[]> {
+async function readRecent(id: WorkApp): Promise<Recent[]> {
   try {
     const list = JSON.parse(await fs.readFile(recentFile(id), 'utf8')) as Recent[];
     return Array.isArray(list) ? list.filter((r) => r && typeof r.path === 'string') : [];
@@ -54,14 +54,14 @@ async function readRecent(id: 'gridline' | 'pixelline'): Promise<Recent[]> {
   }
 }
 
-async function writeRecent(id: 'gridline' | 'pixelline', list: Recent[]): Promise<void> {
+async function writeRecent(id: WorkApp, list: Recent[]): Promise<void> {
   await fs.mkdir(path.dirname(recentFile(id)), { recursive: true });
   await fs.writeFile(recentFile(id), JSON.stringify(list, null, 2));
 }
 
 async function allRecent(): Promise<SuiteFile[]> {
   const out: SuiteFile[] = [];
-  for (const id of ['gridline', 'pixelline'] as const) {
+  for (const id of ['gridline', 'pixelline', 'frameline'] as const) {
     for (const r of await readRecent(id)) {
       const st = await fs.stat(r.path).catch(() => null);
       if (!st) continue;
@@ -131,7 +131,7 @@ const senderWindow = (e: IpcMainInvokeEvent | Electron.IpcMainEvent) => BrowserW
 
 ipcMain.handle('suite:apps', (_e, extra: unknown) => suiteApps(customExes(extra)));
 ipcMain.handle('suite:launch', async (_e, id: SuiteAppId, args: unknown, extra: unknown) => {
-  if (!['gridline', 'pixelline'].includes(id)) return false;
+  if (!['gridline', 'pixelline', 'frameline'].includes(id)) return false;
   return launchSuiteApp(id, safeLaunchArgs(args), customExes(extra));
 });
 
@@ -150,7 +150,7 @@ ipcMain.handle('app:install-kind', () => {
 ipcMain.handle('apps:status', async (_e, extra: unknown, includeDev: boolean, fresh: boolean) => {
   const apps = await suiteApps(customExes(extra));
   return Promise.all(
-    (['gridline', 'pixelline'] as const).map(async (id) => {
+    (['gridline', 'pixelline', 'frameline'] as const).map(async (id) => {
       const a = apps.find((x) => x.id === id)!;
       const current = a.exe ? ((await exeVersion(a.exe)) ?? a.version) : null;
       let latest = null;
@@ -168,7 +168,7 @@ ipcMain.handle('apps:status', async (_e, extra: unknown, includeDev: boolean, fr
 
 /** Downloads and installs (or updates) an app, reporting progress to the window. */
 ipcMain.handle('apps:install', async (e, id: ManagedApp, includeDev: boolean) => {
-  if (id !== 'gridline' && id !== 'pixelline') return { ok: false, error: 'Unknown app.' };
+  if (id !== 'gridline' && id !== 'pixelline' && id !== 'frameline') return { ok: false, error: 'Unknown app.' };
   if (busy.has(id)) return { ok: false, error: 'Already installing.' };
   const name = APP_NAMES[id];
   const send = (p: Record<string, unknown>) => {
@@ -216,22 +216,23 @@ ipcMain.handle('files:open-dialog', async (e) => {
     title: 'Open a file',
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: 'Spreadsheets and images', extensions: ['xlsx', 'xlsm', 'csv', 'tsv', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ora', 'psd'] },
+      { name: 'Spreadsheets, images and videos', extensions: ['xlsx', 'xlsm', 'csv', 'tsv', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ora', 'psd', 'frameline'] },
       { name: 'Spreadsheets (Gridline)', extensions: ['xlsx', 'xlsm', 'csv', 'tsv'] },
       { name: 'Images (Pixelline)', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ora', 'psd'] },
+      { name: 'Video projects (Frameline)', extensions: ['frameline'] },
     ],
   });
   if (res.canceled) return [];
   for (const p of res.filePaths) remember(p);
   return res.filePaths;
 });
-ipcMain.handle('files:pin', async (_e, id: 'gridline' | 'pixelline', p: string, pinned: boolean) => {
+ipcMain.handle('files:pin', async (_e, id: WorkApp, p: string, pinned: boolean) => {
   if (!(id in OPENS) || !isKnown(p)) return;
   const list = await readRecent(id);
   for (const r of list) if (r.path.toLowerCase() === p.toLowerCase()) r.pinned = pinned ? true : undefined;
   await writeRecent(id, list);
 });
-ipcMain.handle('files:remove', async (_e, id: 'gridline' | 'pixelline', p: string) => {
+ipcMain.handle('files:remove', async (_e, id: WorkApp, p: string) => {
   if (!(id in OPENS) || typeof p !== 'string') return;
   await writeRecent(
     id,

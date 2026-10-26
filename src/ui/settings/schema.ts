@@ -9,7 +9,7 @@ import type { SectionDef, SettingDef, SettingOption } from './store';
 export const SECTIONS: SectionDef[] = [
   { id: 'appearance', label: 'Appearance', icon: L.Palette, description: 'Theme, colors and size.' },
   { id: 'home', label: 'Home & files', icon: L.House, description: 'What Baseline shows and how files open.' },
-  { id: 'apps', label: 'Apps', icon: L.LayoutGrid, description: 'Installing and updating Gridline and Pixelline, and where they are.' },
+  { id: 'apps', label: 'Apps', icon: L.LayoutGrid, description: 'Installing and updating Gridline, Pixelline and Frameline, and where they are.' },
   { id: 'startup', label: 'Startup', icon: L.Power, description: 'Starting Baseline with Windows.' },
   { id: 'updates', label: 'Updates', icon: L.RefreshCw, description: 'Version and automatic updates.' },
 ];
@@ -26,7 +26,7 @@ export const ACCENTS: Record<string, [string, string]> = {
 };
 
 /** A row in Settings that picks an app's .exe. */
-function appPath(id: 'gridline' | 'pixelline', name: string): SettingDef {
+function appPath(id: 'gridline' | 'pixelline' | 'frameline', name: string): SettingDef {
   return {
     id: `apps.${id}Path`,
     section: 'apps',
@@ -53,13 +53,13 @@ export const SETTINGS: SettingDef[] = [
   { id: 'home.start', section: 'home', group: 'When Baseline opens', label: 'Show', type: 'select', default: 'home', options: opts(['home', 'Home'], ['files', 'Files'], ['create', 'Create']), keywords: 'start page' },
   { id: 'home.recentCount', section: 'home', group: 'Home', label: 'Recent files on Home', type: 'number', default: 12, min: 4, max: 50, step: 1, refresh: ['live'] },
   { id: 'home.thumbnails', section: 'home', group: 'Home', label: 'Show pictures of files', description: 'Images show a small preview; other files show their icon.', type: 'toggle', default: true, refresh: ['live'], keywords: 'thumbnails previews' },
-  { id: 'home.featured', section: 'home', group: 'Home', label: 'Quick start tiles', type: 'select', default: 'both', options: opts(['both', 'Spreadsheets and images'], ['gridline', 'Spreadsheets'], ['pixelline', 'Images']), refresh: ['live'] },
+  { id: 'home.featured', section: 'home', group: 'Home', label: 'Quick start tiles', type: 'select', default: 'both', options: opts(['both', 'Everything'], ['gridline', 'Spreadsheets'], ['pixelline', 'Images'], ['frameline', 'Videos']), refresh: ['live'] },
 
   // ---------- Apps ----------
-  { id: 'apps.installMissing', section: 'apps', group: 'Installing & updating', label: 'Install Gridline and Pixelline when Baseline is set up', description: 'The first time an installed Baseline starts, it installs the apps this computer doesn’t have yet.', type: 'toggle', default: true, desktopOnly: true, keywords: 'setup first run download' },
+  { id: 'apps.installMissing', section: 'apps', group: 'Installing & updating', label: 'Install the apps when Baseline is set up', description: 'The first time an installed Baseline starts, it installs the apps this computer doesn’t have yet.', type: 'toggle', default: true, desktopOnly: true, keywords: 'setup first run download' },
   { id: 'apps.checkUpdates', section: 'apps', group: 'Installing & updating', label: 'Check the apps for updates', description: 'When Baseline starts, and every few hours while it’s open.', type: 'toggle', default: true, desktopOnly: true, keywords: 'version new' },
   { id: 'apps.autoUpdate', section: 'apps', group: 'Installing & updating', label: 'Update the apps automatically', description: 'Installs updates in the background while the app is closed. Otherwise Home asks first.', type: 'toggle', default: false, desktopOnly: true, keywords: 'background silent' },
-  { id: 'apps.devBuilds', section: 'apps', group: 'Installing & updating', label: 'Development builds of the apps', description: 'Install and update Gridline and Pixelline to their newest development builds. They have the newest features first, but may have bugs.', type: 'toggle', default: false, desktopOnly: true, keywords: 'beta preview pre-release developer branch', apply: (_v: boolean, app: App) => app.installs?.devBuildsChanged() },
+  { id: 'apps.devBuilds', section: 'apps', group: 'Installing & updating', label: 'Development builds of the apps', description: 'Install and update Gridline, Pixelline and Frameline to their newest development builds. They have the newest features first, but may have bugs.', type: 'toggle', default: false, desktopOnly: true, keywords: 'beta preview pre-release developer branch', apply: (_v: boolean, app: App) => app.installs?.devBuildsChanged() },
   { id: 'apps.checkNow', section: 'apps', group: 'Installing & updating', label: 'Check for app updates now', type: 'action', desktopOnly: true, action: { label: 'Check now', run: (app) => app.installs.checkNow() } },
   appPath('gridline', 'Gridline'),
   { id: 'apps.gridlineChoose', section: 'apps', group: 'Gridline', label: 'Find Gridline.exe', type: 'action', desktopOnly: true, action: { label: 'Choose…', run: async (app) => {
@@ -70,6 +70,11 @@ export const SETTINGS: SettingDef[] = [
   { id: 'apps.pixellineChoose', section: 'apps', group: 'Pixelline', label: 'Find Pixelline.exe', type: 'action', desktopOnly: true, action: { label: 'Choose…', run: async (app) => {
     const p = await platform.pickExe('Pixelline');
     if (p) app.settings.set('apps.pixellinePath', p);
+  } } },
+  appPath('frameline', 'Frameline'),
+  { id: 'apps.framelineChoose', section: 'apps', group: 'Frameline', label: 'Find Frameline.exe', type: 'action', desktopOnly: true, action: { label: 'Choose…', run: async (app) => {
+    const p = await platform.pickExe('Frameline');
+    if (p) app.settings.set('apps.framelinePath', p);
   } } },
 
   // ---------- Startup ----------

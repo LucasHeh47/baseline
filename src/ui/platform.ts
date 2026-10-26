@@ -20,6 +20,7 @@ const SAMPLE_APPS: SuiteApp[] = [
   { id: 'baseline', name: 'Baseline', description: 'Home for your apps and files', installed: true, exe: null, version: __APP_VERSION__, download: 'https://github.com/LucasHeh47/baseline/releases' },
   { id: 'gridline', name: 'Gridline', description: 'Spreadsheets', installed: true, exe: null, version: null, download: 'https://github.com/LucasHeh47/gridline/releases' },
   { id: 'pixelline', name: 'Pixelline', description: 'Images and pixel art', installed: false, exe: null, version: null, download: 'https://github.com/LucasHeh47/pixelline/releases' },
+  { id: 'frameline', name: 'Frameline', description: 'Video editing', installed: false, exe: null, version: null, download: 'https://github.com/LucasHeh47/frameline/releases' },
 ];
 
 const webFallback: Omit<BaselineApi, 'isDesktop'> & { isDesktop: boolean } = {
@@ -31,6 +32,7 @@ const webFallback: Omit<BaselineApi, 'isDesktop'> & { isDesktop: boolean } = {
   appStatus: async () => [
     { id: 'gridline', installed: true, exe: null, portable: false, current: '1.0.4', latest: { version: '1.0.5', prerelease: false, url: '', size: 0, notes: '' }, update: true, busy: false },
     { id: 'pixelline', installed: false, exe: null, portable: false, current: null, latest: { version: '0.2.0', prerelease: false, url: '', size: 0, notes: '' }, update: false, busy: false },
+    { id: 'frameline', installed: false, exe: null, portable: false, current: null, latest: { version: '0.1.0', prerelease: false, url: '', size: 0, notes: '' }, update: false, busy: false },
   ],
   installApp: async () => ({ ok: false, error: 'Installing apps works in the desktop app.' }),
   onInstallProgress: () => undefined,

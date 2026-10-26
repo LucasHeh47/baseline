@@ -1,6 +1,9 @@
 // The bridge between Baseline's main process and its UI (exposed as window.baseline).
 
-export type SuiteAppId = 'baseline' | 'gridline' | 'pixelline';
+export type SuiteAppId = 'baseline' | 'gridline' | 'pixelline' | 'frameline';
+
+/** The apps that make files (everything but Baseline). */
+export type WorkApp = 'gridline' | 'pixelline' | 'frameline';
 
 export interface SuiteApp {
   id: SuiteAppId;
@@ -13,9 +16,9 @@ export interface SuiteApp {
   download: string;
 }
 
-/** A file from Gridline's or Pixelline's recent list. */
+/** A file from Gridline's, Pixelline's or Frameline's recent list. */
 export interface SuiteFile {
-  app: 'gridline' | 'pixelline';
+  app: WorkApp;
   path: string;
   name: string;
   openedAt: number;
@@ -44,7 +47,7 @@ export interface AppRelease {
 
 /** Whether an app is installed, which version, and whether a newer one is out. */
 export interface AppStatus {
-  id: 'gridline' | 'pixelline';
+  id: WorkApp;
   installed: boolean;
   exe: string | null;
   /** A portable copy: it updates itself (Baseline can't run an installer over it). */
@@ -58,7 +61,7 @@ export interface AppStatus {
 }
 
 export interface InstallProgress {
-  id: 'gridline' | 'pixelline';
+  id: WorkApp;
   phase: 'checking' | 'downloading' | 'installing' | 'done' | 'error';
   percent: number;
   version?: string;
@@ -82,15 +85,15 @@ export interface BaselineApi {
   /** Installed versions and the newest releases (development builds too when asked; `fresh` asks GitHub again). */
   appStatus(extra: AppPaths, includeDev: boolean, fresh?: boolean): Promise<AppStatus[]>;
   /** Downloads the newest installer of an app and runs it silently. */
-  installApp(id: 'gridline' | 'pixelline', includeDev: boolean): Promise<InstallResult>;
+  installApp(id: WorkApp, includeDev: boolean): Promise<InstallResult>;
   onInstallProgress(cb: (p: InstallProgress) => void): void;
   recentFiles(): Promise<SuiteFile[]>;
   /** Opens a file in the app that makes it. */
   openFile(path: string, extra?: AppPaths): Promise<OpenResult>;
   /** The Open dialog; returns the files chosen (they can then be opened). */
   openFileDialog(): Promise<string[]>;
-  pinFile(app: 'gridline' | 'pixelline', path: string, pinned: boolean): Promise<void>;
-  removeFile(app: 'gridline' | 'pixelline', path: string): Promise<void>;
+  pinFile(app: WorkApp, path: string, pinned: boolean): Promise<void>;
+  removeFile(app: WorkApp, path: string): Promise<void>;
   /** A data: URL picture of the file (the image, or its type's icon), or null. */
   thumbnail(path: string): Promise<string | null>;
   showInFolder(path: string): void;

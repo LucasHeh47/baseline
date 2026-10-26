@@ -302,6 +302,10 @@ select.input {
   background: #fff;
   box-shadow: 0 0 0 1px var(--border-strong), 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+.tile-frame.video {
+  background: #15171c;
+  box-shadow: 0 0 0 1px rgba(255, 92, 108, 0.6);
+}
 .tile-frame.transparent {
   background: conic-gradient(#d5d8de 25%, #f5f6f8 0 50%, #d5d8de 0 75%, #f5f6f8 0) 0 0 / 8px 8px;
 }

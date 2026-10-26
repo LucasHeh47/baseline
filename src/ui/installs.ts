@@ -1,4 +1,4 @@
-// Installing Gridline and Pixelline from Baseline and keeping them up to date: setting them up the
+// Installing the apps from Baseline and keeping them up to date: setting them up the
 // first time an installed Baseline starts, checking for updates every few hours, and the progress
 // shown on Home and Apps. The desktop shell does the downloading and installing.
 import * as L from 'lucide';
@@ -13,7 +13,7 @@ import { dialog, toast } from './widgets';
 const SETUP_KEY = 'baseline.appsSetUp';
 const CHANNEL_KEY = 'baseline.appsChannelSet';
 const CHECK_EVERY = 6 * 3_600_000;
-const IDS: ManagedApp[] = ['gridline', 'pixelline'];
+const IDS: ManagedApp[] = ['gridline', 'pixelline', 'frameline'];
 
 function stored(key: string): string | null {
   try {
@@ -286,7 +286,7 @@ export class Installs {
     const failed = rows.filter((id) => this.errors.has(id));
     const foot: HTMLElement[] = [];
     if (!working && missing.length) {
-      foot.push(h('button', { class: 'btn primary', onclick: () => void this.install(missing) }, icon(L.Download, 15), missing.length === 1 ? `Install ${APP_NAMES[missing[0]]}` : 'Install both'));
+      foot.push(h('button', { class: 'btn primary', onclick: () => void this.install(missing) }, icon(L.Download, 15), missing.length === 1 ? `Install ${APP_NAMES[missing[0]]}` : missing.length === 2 ? 'Install both' : 'Install all'));
       foot.push(h('button', { class: 'btn text', onclick: () => {
         store(SETUP_KEY, '1');
         this.errors.clear();

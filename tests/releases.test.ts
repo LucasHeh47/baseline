@@ -49,6 +49,7 @@ describe('app releases', () => {
   it('only downloads from the app’s own release page', () => {
     expect(trustedUrl('gridline', 'https://github.com/LucasHeh47/gridline/releases/download/v1.0.4/Gridline-Setup-1.0.4.exe')).toBe(true);
     expect(trustedUrl('pixelline', 'https://github.com/LucasHeh47/gridline/releases/download/v1.0.4/Gridline-Setup-1.0.4.exe')).toBe(false);
+    expect(trustedUrl('frameline', 'https://github.com/LucasHeh47/frameline/releases/download/v0.1.0/Frameline-Setup-0.1.0.exe')).toBe(true);
     expect(trustedUrl('gridline', 'http://github.com/LucasHeh47/gridline/releases/download/v1/x.exe')).toBe(false);
     expect(trustedUrl('gridline', 'https://github.com.evil.example/LucasHeh47/gridline/releases/download/v1/x.exe')).toBe(false);
     expect(trustedUrl('gridline', 'https://github.com/someone/gridline/releases/download/v1/x.exe')).toBe(false);

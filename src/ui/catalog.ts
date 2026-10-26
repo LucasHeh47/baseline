@@ -6,7 +6,7 @@ import { h, icon } from './dom';
 
 export interface Starter {
   id: string;
-  app: 'gridline' | 'pixelline';
+  app: 'gridline' | 'pixelline' | 'frameline';
   name: string;
   description: string;
   icon: L.IconNode;
@@ -15,7 +15,7 @@ export interface Starter {
   /** Options passed to the app. */
   args: string[];
   category: string;
-  /** Size shown on image cards. */
+  /** Size shown on image and video cards. */
   size?: [number, number];
   /** Downloads live data the first time (Gridline presets). */
   live?: boolean;
@@ -36,9 +36,23 @@ const image = (name: string, w: number, h: number, category: string, bg: 'transp
   size: [w, h],
 });
 
+const video = (name: string, w: number, h: number, fps: number, description: string, icon: L.IconNode = L.Clapperboard): Starter => ({
+  id: `fl-${name.toLowerCase().replace(/\W+/g, '-')}`,
+  app: 'frameline',
+  name,
+  description,
+  icon,
+  color: '#ff5c6c',
+  args: [`--new=${w}x${h}`, `--fps=${fps}`, `--name=${name}`],
+  category: 'Video',
+  size: [w, h],
+});
+
 export const BLANK_SHEET: Starter = { id: 'gl-blank', app: 'gridline', name: 'Blank spreadsheet', description: 'An empty workbook', icon: L.Plus, color: '#3fcf8e', args: ['--new'], category: 'Spreadsheets' };
 
 export const BLANK_IMAGE: Starter = image('Blank image', 32, 32, 'Images', 'transparent', 'A transparent canvas (any size in Pixelline)', L.Plus);
+
+export const BLANK_VIDEO: Starter = video('HD video', 1920, 1080, 30, 'YouTube and most cameras (1080p, 30 fps)', L.Plus);
 
 export const STARTERS: Starter[] = [
   BLANK_SHEET,
@@ -65,12 +79,19 @@ export const STARTERS: Starter[] = [
   image('Full HD', 1920, 1080, 'Photos & graphics', 'white', 'A wallpaper or a slide', L.Monitor),
   image('Square post', 1080, 1080, 'Photos & graphics', 'white', 'For social media', L.Square),
   image('Thumbnail', 1280, 720, 'Photos & graphics', 'white', 'A video thumbnail', L.Clapperboard),
+  BLANK_VIDEO,
+  video('Vertical video', 1080, 1920, 30, 'Shorts, Reels and TikTok', L.Smartphone),
+  video('Square video', 1080, 1080, 30, 'Instagram posts', L.Square),
+  video('Smooth 60 fps', 1920, 1080, 60, 'Games and sports', L.Gamepad2),
+  video('Film look', 1920, 1080, 24, 'A cinematic 24 fps', L.Film),
+  video('4K video', 3840, 2160, 30, 'Ultra HD', L.Monitor),
 ];
 
 export const APP_INFO: Record<SuiteAppId, { name: string; noun: string; colors: [string, string]; icon: L.IconNode; tagline: string }> = {
   baseline: { name: 'Baseline', noun: 'home', colors: ['#ffb547', '#ff6f61'], icon: L.LayoutDashboard, tagline: 'Home for your apps and files' },
   gridline: { name: 'Gridline', noun: 'spreadsheet', colors: ['#4ea1ff', '#3fcf8e'], icon: L.Grid2x2, tagline: 'Spreadsheets with live data, formulas and macros. Opens and saves Excel files.' },
   pixelline: { name: 'Pixelline', noun: 'image', colors: ['#a98bff', '#ff7ab6'], icon: L.Shapes, tagline: 'Pixel art, game textures and photos, with layers, filters and animation.' },
+  frameline: { name: 'Frameline', noun: 'video', colors: ['#ff5c6c', '#a98bff'], icon: L.Clapperboard, tagline: 'Video editing with a timeline, titles, transitions, color and sound.' },
 };
 
 /** The square, colored mark of an app. */

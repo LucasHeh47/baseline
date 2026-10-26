@@ -1,14 +1,17 @@
 // Which app opens which file, and how Baseline lists files (shared by the main process and the UI).
+import type { WorkApp } from './api';
 
 /** Files each app opens. */
-export const OPENS: Record<'gridline' | 'pixelline', RegExp> = {
+export const OPENS: Record<WorkApp, RegExp> = {
   gridline: /\.(xlsx|xlsm|csv|tsv)$/i,
   pixelline: /\.(png|jpe?g|webp|gif|bmp|ico|ora|psd)$/i,
+  frameline: /\.frameline$/i,
 };
 
-export function appFor(path: string): 'gridline' | 'pixelline' | null {
+export function appFor(path: string): WorkApp | null {
   if (OPENS.gridline.test(path)) return 'gridline';
   if (OPENS.pixelline.test(path)) return 'pixelline';
+  if (OPENS.frameline.test(path)) return 'frameline';
   return null;
 }
 

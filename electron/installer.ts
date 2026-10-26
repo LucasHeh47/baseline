@@ -1,4 +1,4 @@
-// Installing and updating Gridline and Pixelline from their GitHub releases: find the newest
+// Installing and updating Gridline, Pixelline and Frameline from their GitHub releases: find the newest
 // release, download its installer, and run it silently (per-user, no admin rights needed).
 import { app } from 'electron';
 import { execFile, spawn } from 'node:child_process';
@@ -27,8 +27,10 @@ export async function latestRelease(id: ManagedApp, includeDev: boolean, fresh =
   // Development builds are only looked up when they're wanted, or there's no regular release yet
   if (includeDev || !stable) {
     const res = await fetch(api(`${id}/releases?per_page=10`), { headers: HEADERS });
-    if (!res.ok) throw new Error(`GitHub answered ${res.status}.`);
-    recent = (await res.json()) as GitHubRelease[];
+    // An app that isn't published yet has no releases (and no repository to ask)
+    if (res.status === 404) recent = [];
+    else if (!res.ok) throw new Error(`GitHub answered ${res.status}.`);
+    else recent = (await res.json()) as GitHubRelease[];
   }
   const rel = pickRelease(stable, recent, includeDev);
   cache.set(key, { at: Date.now(), rel });
