@@ -3,8 +3,9 @@
 import * as L from 'lucide';
 import type { AppPaths, SuiteApp, SuiteAppId, SuiteFile } from '../shared/api';
 import { folderOf, matchesQuery, orderFiles } from '../shared/suiteFiles';
-import { APP_INFO, BLANK_IMAGE, BLANK_SHEET, STARTERS, type Starter } from './catalog';
+import { APP_INFO, appMark, BLANK_IMAGE, BLANK_SHEET, STARTERS, type Starter } from './catalog';
 import { h, icon, kbd } from './dom';
+import { Installs } from './installs';
 import { isDesktop, platform } from './platform';
 import { SettingsView } from './settings/SettingsView';
 import { ACCENTS, SETTINGS } from './settings/schema';
@@ -47,17 +48,11 @@ function greeting(): string {
   return hr < 5 ? 'Good evening' : hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-/** The square, colored mark of an app. */
-export function appMark(id: SuiteAppId, size = 18): HTMLElement {
-  const info = APP_INFO[id];
-  const el = h('span', { class: 'app-mark' }, icon(info.icon, size));
-  el.style.background = `linear-gradient(135deg, ${info.colors[0]}, ${info.colors[1]})`;
-  return el;
-}
-
 export class App {
   readonly settings = new Settings(SETTINGS);
   readonly updates: Updates;
+  /** Installing Gridline and Pixelline and keeping them up to date. */
+  readonly installs: Installs;
   /** Updates show their progress here (a small line at the bottom of the rail). */
   readonly statusbar: { flash(text: string): void; setProgress(label: string | null, percent: number): void };
   private section: Section;
@@ -87,6 +82,7 @@ export class App {
       },
     };
     this.updates = new Updates(this);
+    this.installs = new Installs(this);
     this.section = (['home', 'files', 'create'].includes(this.settings.str('home.start')) ? this.settings.str('home.start') : 'home') as Section;
     this.nav = h('nav', { class: 'rail-nav' });
     this.main = h('main', { class: 'bl-main' });
@@ -138,7 +134,7 @@ export class App {
     }, 60_000);
     this.renderNav();
     this.render();
-    void this.reload();
+    void this.reload().then(() => this.installs.startup());
     void this.updates.startup();
   }
 
@@ -164,7 +160,7 @@ export class App {
     if (JSON.stringify([files, apps]) !== before) this.render();
   }
 
-  private app(id: SuiteAppId): SuiteApp | undefined {
+  app(id: SuiteAppId): SuiteApp | undefined {
     return this.apps.find((a) => a.id === id);
   }
 
@@ -205,16 +201,21 @@ export class App {
     const a = this.app(id);
     void dialog<'get' | 'find' | 'cancel'>(
       `${info.name} isn't installed`,
-      `${info.name} opens ${info.noun}s. Download it (it's free), or tell Baseline where your copy is if you use the portable version.`,
+      `${info.name} opens ${info.noun}s. Baseline can install it for you (it's free), or tell Baseline where your copy is if you use the portable version.`,
       [
-        { label: `Download ${info.name}`, value: 'get', primary: true },
+        { label: `Install ${info.name}`, value: 'get', primary: true },
         { label: 'Find my copy…', value: 'find' },
         { label: 'Cancel', value: 'cancel' },
       ],
       { cancelValue: 'cancel' },
     ).then(async (v) => {
-      if (v === 'get') platform.openExternal(a?.download ?? `https://github.com/LucasHeh47/${id}/releases`);
-      else if (v === 'find') {
+      if (v === 'get') {
+        if (!isDesktop || id === 'baseline') platform.openExternal(a?.download ?? `https://github.com/LucasHeh47/${id}/releases`);
+        else {
+          if (this.section !== 'apps') this.show('home');
+          await this.installs.install([id]);
+        }
+      } else if (v === 'find') {
         const p = await platform.pickExe(info.name);
         if (p) {
           this.settings.set(`apps.${id}Path`, p);
@@ -341,27 +342,14 @@ export class App {
     const tiles: Starter[] = [];
     if (featured !== 'pixelline') tiles.push(BLANK_SHEET, STARTERS.find((s) => s.id === 'gl-budget')!);
     if (featured !== 'gridline') tiles.push(BLANK_IMAGE, STARTERS.find((s) => s.id === 'px-block-or-item')!, STARTERS.find((s) => s.id === 'px-full-hd')!);
-    const missing = this.missingApps();
+    const card = this.installs.homeCard();
     this.main.append(
       h('h1', { class: 'bl-h1' }, greeting()),
       h('p', { class: 'bl-sub' }, 'Pick up where you left off, or start something new.'),
       h('div', { class: 'bl-row-head' }, h('h2', null, 'Start something new'), h('button', { class: 'btn text bl-link', onclick: () => this.show('create') }, 'Everything you can make', icon(L.ArrowRight, 14))),
       h('div', { class: 'tile-strip' }, ...tiles.map((s) => this.starterCard(s, true))),
-      ...(missing ? [missing] : []),
+      ...(card ? [card] : []),
       this.fileBlock(this.settings.num('home.recentCount')),
-    );
-  }
-
-  /** A note for apps that aren't installed yet. */
-  private missingApps(): HTMLElement | null {
-    const missing = this.apps.filter((a) => a.id !== 'baseline' && !a.installed);
-    if (!missing.length || !isDesktop) return null;
-    return h(
-      'div',
-      { class: 'bl-note' },
-      icon(L.Info, 16),
-      h('span', null, `${missing.map((a) => a.name).join(' and ')} ${missing.length === 1 ? "isn't" : "aren't"} installed on this computer yet.`),
-      ...missing.map((a) => h('button', { class: 'btn outline small', onclick: () => platform.openExternal(a.download) }, icon(L.Download, 13), `Get ${a.name}`)),
     );
   }
 
@@ -393,35 +381,72 @@ export class App {
   }
 
   private renderApps(): void {
-    this.main.append(h('h1', { class: 'bl-h1' }, 'Apps'), h('p', { class: 'bl-sub' }, 'Your apps. Each one updates itself.'));
+    const ins = this.installs;
+    const check = h('button', { class: 'btn outline', disabled: ins.checking, onclick: () => void ins.checkNow() }, icon(L.RefreshCw, 15), ins.checking ? 'Checking…' : 'Check for updates');
+    const checked = ins.checkedAt ? relativeTime(ins.checkedAt) : '';
+    this.main.append(
+      h(
+        'div',
+        { class: 'bl-row-head' },
+        h('div', null, h('h1', { class: 'bl-h1' }, 'Apps'), h('p', { class: 'bl-sub' }, 'Install, open and update your apps.')),
+        h('div', { class: 'spacer' }),
+        isDesktop ? h('div', { class: 'apps-check' }, checked ? h('span', { class: 'hint' }, `Checked ${checked[0].toLowerCase()}${checked.slice(1)}`) : null, check) : null,
+      ),
+    );
     const grid = h('div', { class: 'app-grid' });
     for (const id of ['gridline', 'pixelline', 'baseline'] as const) {
       const a = this.app(id);
       const info = APP_INFO[id];
-      const self = id === 'baseline';
-      const status = self ? 'You’re here' : a?.installed ? (a.version ? `Version ${a.version}` : 'Installed') : 'Not installed';
-      const actions = self
-        ? [h('button', { class: 'btn outline', onclick: () => this.openSettings('updates') }, icon(L.RefreshCw, 15), 'Updates')]
-        : a?.installed
-          ? [
-              h('button', { class: 'btn primary', onclick: async () => {
-                if (await platform.launch(id, [], this.appPaths())) toast(`Opening ${info.name}…`);
-                else this.notInstalled(id);
-              } }, 'Open'),
-              h('button', { class: 'btn outline', onclick: () => void this.start(id === 'gridline' ? BLANK_SHEET : BLANK_IMAGE) }, icon(L.Plus, 15), `New ${info.noun}`),
-            ]
-          : [
-              h('button', { class: 'btn primary', onclick: () => platform.openExternal(a?.download ?? `https://github.com/LucasHeh47/${id}/releases`) }, icon(L.Download, 15), 'Get it'),
-              h('button', { class: 'btn outline', onclick: () => this.notInstalled(id) }, 'I have a copy…'),
-            ];
+      const releases = a?.download ?? `https://github.com/LucasHeh47/${id}/releases`;
+      let status: string;
+      let actions: HTMLElement[];
+      let extra: HTMLElement | null = null;
+      if (id === 'baseline') {
+        status = 'You’re here';
+        actions = [h('button', { class: 'btn outline', onclick: () => this.openSettings('updates') }, icon(L.RefreshCw, 15), 'Updates')];
+      } else {
+        const st = ins.statusOf(id);
+        const version = st?.current ?? a?.version;
+        const err = ins.errorOf(id);
+        if (ins.busy(id)) {
+          status = a?.installed ? 'Updating…' : 'Installing…';
+          actions = [];
+          extra = ins.progressLine(id);
+        } else if (a?.installed) {
+          status = (version ? `Version ${version}` : 'Installed') + (st?.update ? ` · ${st.latest?.version} is out` : st?.latest && !st.error ? ' · Up to date' : '');
+          const open = h('button', { class: `btn ${st?.update ? 'outline' : 'primary'}`, onclick: async () => {
+            if (await platform.launch(id, [], this.appPaths())) toast(`Opening ${info.name}…`);
+            else this.notInstalled(id);
+          } }, 'Open');
+          const create = h('button', { class: 'btn outline', onclick: () => void this.start(id === 'gridline' ? BLANK_SHEET : BLANK_IMAGE) }, icon(L.Plus, 15), `New ${info.noun}`);
+          actions = [open, create];
+          if (st?.update && !st.portable) actions.unshift(h('button', { class: 'btn primary', onclick: () => void ins.install([id]) }, icon(L.Download, 15), 'Update'));
+          else if (st?.update) {
+            // A portable copy is replaced by downloading the new one
+            const get = h('button', { class: 'btn primary', onclick: () => platform.openExternal(releases) }, icon(L.Download, 15), 'Download');
+            tooltip(get, 'Your copy is portable: download the new one from the release page');
+            actions.unshift(get);
+          }
+        } else {
+          status = 'Not installed';
+          actions = [
+            isDesktop
+              ? h('button', { class: 'btn primary', onclick: () => void ins.install([id]) }, icon(L.Download, 15), 'Install')
+              : h('button', { class: 'btn primary', onclick: () => platform.openExternal(releases) }, icon(L.Download, 15), 'Get it'),
+            h('button', { class: 'btn outline', onclick: () => this.notInstalled(id) }, 'I have a copy…'),
+          ];
+        }
+        if (err && !extra) extra = h('div', { class: 'install-error' }, icon(L.CircleAlert, 14), h('span', null, err));
+      }
       grid.append(
         h(
           'div',
           { class: 'app-card' },
-          h('div', { class: 'app-card-head' }, appMark(id, 26), h('div', null, h('div', { class: 'app-card-name' }, info.name), h('div', { class: `app-card-status${a?.installed || self ? ' ok' : ''}` }, status))),
+          h('div', { class: 'app-card-head' }, appMark(id, 26), h('div', null, h('div', { class: 'app-card-name' }, info.name), h('div', { class: `app-card-status${a?.installed || id === 'baseline' ? ' ok' : ''}` }, status))),
           h('p', { class: 'app-card-text' }, info.tagline),
-          a?.exe && !self ? h('div', { class: 'app-card-path', title: a.exe }, a.exe) : null,
-          h('div', { class: 'app-card-actions' }, ...actions),
+          a?.exe && id !== 'baseline' ? h('div', { class: 'app-card-path', title: a.exe }, a.exe) : null,
+          extra,
+          actions.length ? h('div', { class: 'app-card-actions' }, ...actions) : null,
         ),
       );
     }

@@ -34,12 +34,56 @@ export interface OpenResult {
 /** Custom .exe locations from Settings, for portable copies. */
 export type AppPaths = Partial<Record<SuiteAppId, string>>;
 
+export interface AppRelease {
+  version: string;
+  prerelease: boolean;
+  url: string;
+  size: number;
+  notes: string;
+}
+
+/** Whether an app is installed, which version, and whether a newer one is out. */
+export interface AppStatus {
+  id: 'gridline' | 'pixelline';
+  installed: boolean;
+  exe: string | null;
+  /** A portable copy: it updates itself (Baseline can't run an installer over it). */
+  portable: boolean;
+  current: string | null;
+  latest: AppRelease | null;
+  update: boolean;
+  busy: boolean;
+  /** Releases couldn't be checked (offline…). */
+  error?: string;
+}
+
+export interface InstallProgress {
+  id: 'gridline' | 'pixelline';
+  phase: 'checking' | 'downloading' | 'installing' | 'done' | 'error';
+  percent: number;
+  version?: string;
+}
+
+export interface InstallResult {
+  ok: boolean;
+  version?: string;
+  /** 'running' when the app is open (it has to be closed first). */
+  error?: string;
+}
+
 export interface BaselineApi {
   platform: string;
   isDesktop: true;
   apps(extra?: AppPaths): Promise<SuiteApp[]>;
   /** Starts an app, with files to open or options like "--new" or "--template=budget". */
   launch(id: SuiteAppId, args?: string[], extra?: AppPaths): Promise<boolean>;
+  /** How this copy runs: 'installed' copies install the other apps by themselves the first time. */
+  installKind(): Promise<'installed' | 'portable' | 'dev'>;
+  /** Installed versions and the newest releases (development builds too when asked; `fresh` asks GitHub again). */
+  appStatus(extra: AppPaths, includeDev: boolean, fresh?: boolean): Promise<AppStatus[]>;
+  /** Downloads the newest installer of an app and runs it silently. */
+  installApp(id: 'gridline' | 'pixelline', includeDev: boolean): Promise<InstallResult>;
+  onInstallProgress(cb: (p: InstallProgress) => void): void;
   recentFiles(): Promise<SuiteFile[]>;
   /** Opens a file in the app that makes it. */
   openFile(path: string, extra?: AppPaths): Promise<OpenResult>;

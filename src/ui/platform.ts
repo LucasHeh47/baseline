@@ -27,6 +27,13 @@ const webFallback: Omit<BaselineApi, 'isDesktop'> & { isDesktop: boolean } = {
   isDesktop: false,
   apps: async () => SAMPLE_APPS,
   launch: async () => false,
+  installKind: async () => 'dev',
+  appStatus: async () => [
+    { id: 'gridline', installed: true, exe: null, portable: false, current: '1.0.4', latest: { version: '1.0.5', prerelease: false, url: '', size: 0, notes: '' }, update: true, busy: false },
+    { id: 'pixelline', installed: false, exe: null, portable: false, current: null, latest: { version: '0.2.0', prerelease: false, url: '', size: 0, notes: '' }, update: false, busy: false },
+  ],
+  installApp: async () => ({ ok: false, error: 'Installing apps works in the desktop app.' }),
+  onInstallProgress: () => undefined,
   recentFiles: async () => SAMPLE_FILES,
   openFile: async () => ({ ok: false, error: 'Opening files works in the desktop app.' }),
   openFileDialog: async () => [],

@@ -244,17 +244,6 @@ select.input {
   width: 22px;
   height: 22px;
 }
-.bl-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 18px 0 0;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: var(--panel-2);
-  color: var(--text-muted);
-}
 
 /* ---------- start tiles ---------- */
 .tile-strip,
@@ -556,8 +545,172 @@ select.input {
 }
 .app-card-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: auto;
+}
+.apps-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---------- installing and updating apps ---------- */
+.install-card {
+  margin: 22px 0 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.install-card.update {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.install-card.update .spacer {
+  flex: 1;
+}
+.install-card h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.install-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.install-badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.install-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.install-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.install-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(200px, 42%);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.install-row .app-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+.install-what {
+  min-width: 0;
+}
+.install-name {
+  font-weight: 600;
+}
+.install-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+}
+.install-line {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.app-card .install-line {
+  margin-top: 2px;
+}
+.install-state {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.install-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.install-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+.install-bar.busy > span {
+  width: 35% !important;
+  animation: install-busy 1.2s ease-in-out infinite;
+}
+@keyframes install-busy {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+.install-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--danger);
+}
+.install-error > span {
+  flex: 1;
+  min-width: 0;
+}
+.install-done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ok);
+}
+.install-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.install-notes h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+.install-notes h3:not(:first-child) {
+  margin-top: 16px;
+}
+.install-notes p {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 @media (max-width: 900px) {
@@ -570,6 +723,13 @@ select.input {
   .file-app,
   .file-when {
     display: none;
+  }
+  .install-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .install-right {
+    grid-column: 1 / -1;
+    justify-content: stretch;
   }
 }
 .reduce-motion * {

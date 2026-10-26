@@ -9,7 +9,7 @@ import type { SectionDef, SettingDef, SettingOption } from './store';
 export const SECTIONS: SectionDef[] = [
   { id: 'appearance', label: 'Appearance', icon: L.Palette, description: 'Theme, colors and size.' },
   { id: 'home', label: 'Home & files', icon: L.House, description: 'What Baseline shows and how files open.' },
-  { id: 'apps', label: 'Apps', icon: L.LayoutGrid, description: 'Where Gridline and Pixelline are, for copies that weren’t installed.' },
+  { id: 'apps', label: 'Apps', icon: L.LayoutGrid, description: 'Installing and updating Gridline and Pixelline, and where they are.' },
   { id: 'startup', label: 'Startup', icon: L.Power, description: 'Starting Baseline with Windows.' },
   { id: 'updates', label: 'Updates', icon: L.RefreshCw, description: 'Version and automatic updates.' },
 ];
@@ -56,6 +56,11 @@ export const SETTINGS: SettingDef[] = [
   { id: 'home.featured', section: 'home', group: 'Home', label: 'Quick start tiles', type: 'select', default: 'both', options: opts(['both', 'Spreadsheets and images'], ['gridline', 'Spreadsheets'], ['pixelline', 'Images']), refresh: ['live'] },
 
   // ---------- Apps ----------
+  { id: 'apps.installMissing', section: 'apps', group: 'Installing & updating', label: 'Install Gridline and Pixelline when Baseline is set up', description: 'The first time an installed Baseline starts, it installs the apps this computer doesn’t have yet.', type: 'toggle', default: true, desktopOnly: true, keywords: 'setup first run download' },
+  { id: 'apps.checkUpdates', section: 'apps', group: 'Installing & updating', label: 'Check the apps for updates', description: 'When Baseline starts, and every few hours while it’s open.', type: 'toggle', default: true, desktopOnly: true, keywords: 'version new' },
+  { id: 'apps.autoUpdate', section: 'apps', group: 'Installing & updating', label: 'Update the apps automatically', description: 'Installs updates in the background while the app is closed. Otherwise Home asks first.', type: 'toggle', default: false, desktopOnly: true, keywords: 'background silent' },
+  { id: 'apps.devBuilds', section: 'apps', group: 'Installing & updating', label: 'Development builds of the apps', description: 'Install and update Gridline and Pixelline to their newest development builds. They have the newest features first, but may have bugs.', type: 'toggle', default: false, desktopOnly: true, keywords: 'beta preview pre-release developer branch', apply: (_v: boolean, app: App) => app.installs?.devBuildsChanged() },
+  { id: 'apps.checkNow', section: 'apps', group: 'Installing & updating', label: 'Check for app updates now', type: 'action', desktopOnly: true, action: { label: 'Check now', run: (app) => app.installs.checkNow() } },
   appPath('gridline', 'Gridline'),
   { id: 'apps.gridlineChoose', section: 'apps', group: 'Gridline', label: 'Find Gridline.exe', type: 'action', desktopOnly: true, action: { label: 'Choose…', run: async (app) => {
     const p = await platform.pickExe('Gridline');

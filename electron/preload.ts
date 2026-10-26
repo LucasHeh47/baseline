@@ -7,6 +7,12 @@ const api: BaselineApi = {
   isDesktop: true,
   apps: (extra) => ipcRenderer.invoke('suite:apps', extra ?? {}),
   launch: (id, args, extra) => ipcRenderer.invoke('suite:launch', id, args ?? [], extra ?? {}),
+  installKind: () => ipcRenderer.invoke('app:install-kind'),
+  appStatus: (extra, includeDev, fresh) => ipcRenderer.invoke('apps:status', extra ?? {}, !!includeDev, !!fresh),
+  installApp: (id, includeDev) => ipcRenderer.invoke('apps:install', id, !!includeDev),
+  onInstallProgress: (cb) => {
+    ipcRenderer.on('apps:progress', (_e, p) => cb(p));
+  },
   recentFiles: () => ipcRenderer.invoke('files:recent'),
   openFile: (p, extra) => ipcRenderer.invoke('files:open', p, extra ?? {}),
   openFileDialog: () => ipcRenderer.invoke('files:open-dialog'),

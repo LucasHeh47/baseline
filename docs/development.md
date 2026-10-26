@@ -16,6 +16,9 @@ npm run dist       # Windows installer and portable exe in release/
 | --- | --- |
 | `electron/main.ts` | The window, the apps' recent lists, thumbnails, opening files in the right app |
 | `electron/suite.ts` | Finding and starting the suite's apps. **The same file is in all three apps**; change it in each |
+| `electron/installer.ts` | Downloading the apps' installers from their GitHub releases and running them silently |
+| `src/shared/releases.ts` | Comparing versions and picking the release to install (tested in `tests/releases.test.ts`) |
+| `src/ui/installs.ts` | The first-run setup, update checks, and the install progress on Home and Apps |
 | `src/shared/` | Types for the bridge to the UI, and which app opens which files |
 | `src/ui/app.ts` | Home, Create, Files and Apps |
 | `src/ui/catalog.ts` | What can be started: blank files and presets, and the options passed to each app |
@@ -38,3 +41,8 @@ npm run dist       # Windows installer and portable exe in release/
 ```
 npx electron . --user-data-dir=%TEMP%\baseline-test
 ```
+
+Installing apps is real by default. To try it without installing anything:
+
+- `BASELINE_INSTALL_DRYRUN=1` downloads the installer as usual but doesn't run it (it waits a moment and reports success).
+- `BASELINE_INSTALL_KIND=installed` (or `portable`, `dev`) makes Baseline behave like an installed copy, which sets the apps up by itself the first time it starts.

@@ -2,6 +2,7 @@
 // (command-line options the apps understand).
 import * as L from 'lucide';
 import type { SuiteAppId } from '../shared/api';
+import { h, icon } from './dom';
 
 export interface Starter {
   id: string;
@@ -71,3 +72,11 @@ export const APP_INFO: Record<SuiteAppId, { name: string; noun: string; colors: 
   gridline: { name: 'Gridline', noun: 'spreadsheet', colors: ['#4ea1ff', '#3fcf8e'], icon: L.Grid2x2, tagline: 'Spreadsheets with live data, formulas and macros. Opens and saves Excel files.' },
   pixelline: { name: 'Pixelline', noun: 'image', colors: ['#a98bff', '#ff7ab6'], icon: L.Shapes, tagline: 'Pixel art, game textures and photos, with layers, filters and animation.' },
 };
+
+/** The square, colored mark of an app. */
+export function appMark(id: SuiteAppId, size = 18): HTMLElement {
+  const info = APP_INFO[id];
+  const el = h('span', { class: 'app-mark' }, icon(info.icon, size));
+  el.style.background = `linear-gradient(135deg, ${info.colors[0]}, ${info.colors[1]})`;
+  return el;
+}

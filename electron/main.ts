@@ -5,7 +5,9 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { SuiteAppId, SuiteFile } from '../src/shared/api';
+import { APP_NAMES, compareVersions, type ManagedApp } from '../src/shared/releases';
 import { appFor, OPENS } from '../src/shared/suiteFiles';
+import { download, exeVersion, installedCopy, isRunning, latestRelease, runInstaller } from './installer';
 import { launchSuiteApp, registerSelf, safeLaunchArgs, suiteApps } from './suite';
 import { setupUpdates } from './updater';
 
@@ -131,6 +133,73 @@ ipcMain.handle('suite:apps', (_e, extra: unknown) => suiteApps(customExes(extra)
 ipcMain.handle('suite:launch', async (_e, id: SuiteAppId, args: unknown, extra: unknown) => {
   if (!['gridline', 'pixelline'].includes(id)) return false;
   return launchSuiteApp(id, safeLaunchArgs(args), customExes(extra));
+});
+
+// ---------- installing and updating the apps ----------
+
+const busy = new Set<ManagedApp>();
+
+/** How this copy of Baseline runs: installed (it sets the apps up by itself), portable, or in development. */
+ipcMain.handle('app:install-kind', () => {
+  const forced = process.env.BASELINE_INSTALL_KIND;
+  if (forced === 'installed' || forced === 'portable' || forced === 'dev') return forced;
+  if (!app.isPackaged) return 'dev';
+  return !process.env.PORTABLE_EXECUTABLE_FILE && installedCopy(process.execPath, 'Baseline') ? 'installed' : 'portable';
+});
+
+ipcMain.handle('apps:status', async (_e, extra: unknown, includeDev: boolean, fresh: boolean) => {
+  const apps = await suiteApps(customExes(extra));
+  return Promise.all(
+    (['gridline', 'pixelline'] as const).map(async (id) => {
+      const a = apps.find((x) => x.id === id)!;
+      const current = a.exe ? ((await exeVersion(a.exe)) ?? a.version) : null;
+      let latest = null;
+      let error: string | undefined;
+      try {
+        latest = await latestRelease(id, !!includeDev, !!fresh);
+      } catch (err) {
+        error = (err as Error).message;
+      }
+      const update = !!(a.installed && current && latest && compareVersions(latest.version, current) > 0);
+      return { id, installed: a.installed, exe: a.exe, portable: !!a.exe && !installedCopy(a.exe, APP_NAMES[id]), current, latest, update, busy: busy.has(id), error };
+    }),
+  );
+});
+
+/** Downloads and installs (or updates) an app, reporting progress to the window. */
+ipcMain.handle('apps:install', async (e, id: ManagedApp, includeDev: boolean) => {
+  if (id !== 'gridline' && id !== 'pixelline') return { ok: false, error: 'Unknown app.' };
+  if (busy.has(id)) return { ok: false, error: 'Already installing.' };
+  const name = APP_NAMES[id];
+  const send = (p: Record<string, unknown>) => {
+    if (!e.sender.isDestroyed()) e.sender.send('apps:progress', { id, ...p });
+  };
+  busy.add(id);
+  try {
+    if (await isRunning(`${name}.exe`)) return { ok: false, error: 'running' };
+    send({ phase: 'checking', percent: 0 });
+    const rel = await latestRelease(id, !!includeDev);
+    if (!rel) return { ok: false, error: `${name} has no installer to download yet.` };
+    send({ phase: 'downloading', percent: 0, version: rel.version });
+    let last = 0;
+    const file = await download(id, rel, (p) => {
+      // A message per percent is plenty
+      if (p - last >= 0.01 || p === 1) {
+        last = p;
+        send({ phase: 'downloading', percent: Math.round(p * 100), version: rel.version });
+      }
+    });
+    send({ phase: 'installing', percent: 100, version: rel.version });
+    const ok = await runInstaller(file);
+    await fs.rm(file, { force: true }).catch(() => undefined);
+    send({ phase: ok ? 'done' : 'error', percent: 100, version: rel.version });
+    return ok ? { ok: true, version: rel.version } : { ok: false, error: `The ${name} installer didn't finish.` };
+  } catch (err) {
+    send({ phase: 'error', percent: 0 });
+    return { ok: false, error: (err as Error).message };
+  } finally {
+    busy.delete(id);
+  }
 });
 
 ipcMain.handle('files:recent', () => allRecent());
