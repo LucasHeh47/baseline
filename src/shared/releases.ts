@@ -2,10 +2,10 @@
 // Kept free of Electron so it can be tested.
 import type { AppRelease } from './api';
 
-export type ManagedApp = 'gridline' | 'pixelline' | 'frameline';
+export type ManagedApp = 'gridline' | 'pixelline' | 'frameline' | 'beatline';
 
 export const OWNER = 'LucasHeh47';
-export const APP_NAMES: Record<ManagedApp, string> = { gridline: 'Gridline', pixelline: 'Pixelline', frameline: 'Frameline' };
+export const APP_NAMES: Record<ManagedApp, string> = { gridline: 'Gridline', pixelline: 'Pixelline', frameline: 'Frameline', beatline: 'Beatline' };
 
 /** A release as the GitHub API lists it (only the fields Baseline reads). */
 export interface GitHubRelease {

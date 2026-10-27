@@ -13,7 +13,7 @@ import { dialog, toast } from './widgets';
 const SETUP_KEY = 'baseline.appsSetUp';
 const CHANNEL_KEY = 'baseline.appsChannelSet';
 const CHECK_EVERY = 6 * 3_600_000;
-const IDS: ManagedApp[] = ['gridline', 'pixelline', 'frameline'];
+const IDS: ManagedApp[] = ['gridline', 'pixelline', 'frameline', 'beatline'];
 
 function stored(key: string): string | null {
   try {

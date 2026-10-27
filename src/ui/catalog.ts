@@ -6,7 +6,7 @@ import { h, icon } from './dom';
 
 export interface Starter {
   id: string;
-  app: 'gridline' | 'pixelline' | 'frameline';
+  app: 'gridline' | 'pixelline' | 'frameline' | 'beatline';
   name: string;
   description: string;
   icon: L.IconNode;
@@ -48,11 +48,24 @@ const video = (name: string, w: number, h: number, fps: number, description: str
   size: [w, h],
 });
 
+const music = (template: string, name: string, description: string, icon: L.IconNode): Starter => ({
+  id: `bt-${template}`,
+  app: 'beatline',
+  name,
+  description,
+  icon,
+  color: '#2dd4bf',
+  args: ['--new', `--template=${template}`],
+  category: 'Music',
+});
+
 export const BLANK_SHEET: Starter = { id: 'gl-blank', app: 'gridline', name: 'Blank spreadsheet', description: 'An empty workbook', icon: L.Plus, color: '#3fcf8e', args: ['--new'], category: 'Spreadsheets' };
 
 export const BLANK_IMAGE: Starter = image('Blank image', 32, 32, 'Images', 'transparent', 'A transparent canvas (any size in Pixelline)', L.Plus);
 
 export const BLANK_VIDEO: Starter = video('HD video', 1920, 1080, 30, 'YouTube and most cameras (1080p, 30 fps)', L.Plus);
+
+export const BLANK_BEAT: Starter = music('empty', 'New beat', 'A kick, clap, hi-hat and snare ready to program', L.Plus);
 
 export const STARTERS: Starter[] = [
   BLANK_SHEET,
@@ -85,6 +98,14 @@ export const STARTERS: Starter[] = [
   video('Smooth 60 fps', 1920, 1080, 60, 'Games and sports', L.Gamepad2),
   video('Film look', 1920, 1080, 24, 'A cinematic 24 fps', L.Film),
   video('4K video', 3840, 2160, 30, 'Ultra HD', L.Monitor),
+  BLANK_BEAT,
+  music('hiphop', 'Hip-hop beat', 'Boom bap drums, electric piano and a sub bass, 90 BPM', L.Headphones),
+  music('trap', 'Trap beat', '808s, rolling hats and a dark melody, 140 BPM', L.Zap),
+  music('house', 'House track', 'Four on the floor with bass and chords, 124 BPM', L.Disc3),
+  music('lofi', 'Lo-fi beat', 'Lazy swung drums under jazzy keys, 82 BPM', L.Coffee),
+  music('pop', 'Pop song', 'Four chords, a pluck and drums, 110 BPM', L.Star),
+  music('band', 'Record a band', 'Drums and bass playing, with guitar and vocal tracks ready to record', L.Guitar),
+  music('songwriter', 'Singer-songwriter', 'Guitar and vocal tracks with effects, and a gentle beat', L.Mic),
 ];
 
 export const APP_INFO: Record<SuiteAppId, { name: string; noun: string; colors: [string, string]; icon: L.IconNode; tagline: string }> = {
@@ -92,6 +113,7 @@ export const APP_INFO: Record<SuiteAppId, { name: string; noun: string; colors: 
   gridline: { name: 'Gridline', noun: 'spreadsheet', colors: ['#4ea1ff', '#3fcf8e'], icon: L.Grid2x2, tagline: 'Spreadsheets with live data, formulas and macros. Opens and saves Excel files.' },
   pixelline: { name: 'Pixelline', noun: 'image', colors: ['#a98bff', '#ff7ab6'], icon: L.Shapes, tagline: 'Pixel art, game textures and photos, with layers, filters and animation.' },
   frameline: { name: 'Frameline', noun: 'video', colors: ['#ff5c6c', '#a98bff'], icon: L.Clapperboard, tagline: 'Video editing with a timeline, titles, transitions, color and sound.' },
+  beatline: { name: 'Beatline', noun: 'beat', colors: ['#2dd4bf', '#6366f1'], icon: L.AudioLines, tagline: 'Make beats, write songs and record your guitar, with a mixer and effects.' },
 };
 
 /** The square, colored mark of an app. */

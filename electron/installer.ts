@@ -1,4 +1,4 @@
-// Installing and updating Gridline, Pixelline and Frameline from their GitHub releases: find the newest
+// Installing and updating Gridline, Pixelline, Frameline and Beatline from their GitHub releases: find the newest
 // release, download its installer, and run it silently (per-user, no admin rights needed).
 import { app } from 'electron';
 import { execFile, spawn } from 'node:child_process';

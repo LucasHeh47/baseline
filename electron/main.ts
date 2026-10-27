@@ -1,5 +1,5 @@
 // Baseline's main process: the window, the suite's apps (finding and starting them), and the
-// recent files of Gridline, Pixelline and Frameline (read from each app's own list, so nothing is copied).
+// recent files of Gridline, Pixelline, Frameline and Beatline (read from each app's own list, so nothing is copied).
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, type IpcMainInvokeEvent } from 'electron';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
@@ -14,7 +14,7 @@ import { setupUpdates } from './updater';
 const DEV_URL = process.env.VITE_DEV_SERVER_URL;
 const SMOKE_SCREENSHOT = process.env.BASELINE_SCREENSHOT;
 
-const APP_FOLDERS: Record<WorkApp, string> = { gridline: 'Gridline', pixelline: 'Pixelline', frameline: 'Frameline' };
+const APP_FOLDERS: Record<WorkApp, string> = { gridline: 'Gridline', pixelline: 'Pixelline', frameline: 'Frameline', beatline: 'Beatline' };
 
 /** Where the apps keep their settings (tests point this somewhere else). */
 const appData = () => process.env.BASELINE_APPDATA || app.getPath('appData');
@@ -29,7 +29,7 @@ function customExes(extra: unknown): Partial<Record<SuiteAppId, string>> {
   const out: Partial<Record<SuiteAppId, string>> = {};
   if (!extra || typeof extra !== 'object') return out;
   for (const [k, v] of Object.entries(extra as Record<string, unknown>)) {
-    if (['baseline', 'gridline', 'pixelline', 'frameline'].includes(k) && typeof v === 'string' && /\.exe$/i.test(v) && path.isAbsolute(v) && existsSync(v)) out[k as SuiteAppId] = v;
+    if (['baseline', 'gridline', 'pixelline', 'frameline', 'beatline'].includes(k) && typeof v === 'string' && /\.exe$/i.test(v) && path.isAbsolute(v) && existsSync(v)) out[k as SuiteAppId] = v;
   }
   return out;
 }
@@ -61,7 +61,7 @@ async function writeRecent(id: WorkApp, list: Recent[]): Promise<void> {
 
 async function allRecent(): Promise<SuiteFile[]> {
   const out: SuiteFile[] = [];
-  for (const id of ['gridline', 'pixelline', 'frameline'] as const) {
+  for (const id of ['gridline', 'pixelline', 'frameline', 'beatline'] as const) {
     for (const r of await readRecent(id)) {
       const st = await fs.stat(r.path).catch(() => null);
       if (!st) continue;
@@ -131,7 +131,7 @@ const senderWindow = (e: IpcMainInvokeEvent | Electron.IpcMainEvent) => BrowserW
 
 ipcMain.handle('suite:apps', (_e, extra: unknown) => suiteApps(customExes(extra)));
 ipcMain.handle('suite:launch', async (_e, id: SuiteAppId, args: unknown, extra: unknown) => {
-  if (!['gridline', 'pixelline', 'frameline'].includes(id)) return false;
+  if (!['gridline', 'pixelline', 'frameline', 'beatline'].includes(id)) return false;
   return launchSuiteApp(id, safeLaunchArgs(args), customExes(extra));
 });
 
@@ -150,7 +150,7 @@ ipcMain.handle('app:install-kind', () => {
 ipcMain.handle('apps:status', async (_e, extra: unknown, includeDev: boolean, fresh: boolean) => {
   const apps = await suiteApps(customExes(extra));
   return Promise.all(
-    (['gridline', 'pixelline', 'frameline'] as const).map(async (id) => {
+    (['gridline', 'pixelline', 'frameline', 'beatline'] as const).map(async (id) => {
       const a = apps.find((x) => x.id === id)!;
       const current = a.exe ? ((await exeVersion(a.exe)) ?? a.version) : null;
       let latest = null;
@@ -168,7 +168,7 @@ ipcMain.handle('apps:status', async (_e, extra: unknown, includeDev: boolean, fr
 
 /** Downloads and installs (or updates) an app, reporting progress to the window. */
 ipcMain.handle('apps:install', async (e, id: ManagedApp, includeDev: boolean) => {
-  if (id !== 'gridline' && id !== 'pixelline' && id !== 'frameline') return { ok: false, error: 'Unknown app.' };
+  if (id !== 'gridline' && id !== 'pixelline' && id !== 'frameline' && id !== 'beatline') return { ok: false, error: 'Unknown app.' };
   if (busy.has(id)) return { ok: false, error: 'Already installing.' };
   const name = APP_NAMES[id];
   const send = (p: Record<string, unknown>) => {
@@ -216,10 +216,11 @@ ipcMain.handle('files:open-dialog', async (e) => {
     title: 'Open a file',
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: 'Spreadsheets, images and videos', extensions: ['xlsx', 'xlsm', 'csv', 'tsv', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ora', 'psd', 'frameline'] },
+      { name: 'Spreadsheets, images, videos and music', extensions: ['xlsx', 'xlsm', 'csv', 'tsv', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ora', 'psd', 'frameline', 'beatline'] },
       { name: 'Spreadsheets (Gridline)', extensions: ['xlsx', 'xlsm', 'csv', 'tsv'] },
       { name: 'Images (Pixelline)', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'ora', 'psd'] },
       { name: 'Video projects (Frameline)', extensions: ['frameline'] },
+      { name: 'Music projects (Beatline)', extensions: ['beatline'] },
     ],
   });
   if (res.canceled) return [];

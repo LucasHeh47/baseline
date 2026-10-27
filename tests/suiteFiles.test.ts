@@ -10,6 +10,7 @@ describe('suite files', () => {
     expect(appFor('hero.ora')).toBe('pixelline');
     expect(appFor('art.PSD')).toBe('pixelline');
     expect(appFor('C:\\Videos\\Trip.frameline')).toBe('frameline');
+    expect(appFor('C:\\Music\\Song.beatline')).toBe('beatline');
     expect(appFor('notes.txt')).toBeNull();
   });
 

@@ -1,9 +1,9 @@
 // The bridge between Baseline's main process and its UI (exposed as window.baseline).
 
-export type SuiteAppId = 'baseline' | 'gridline' | 'pixelline' | 'frameline';
+export type SuiteAppId = 'baseline' | 'gridline' | 'pixelline' | 'frameline' | 'beatline';
 
 /** The apps that make files (everything but Baseline). */
-export type WorkApp = 'gridline' | 'pixelline' | 'frameline';
+export type WorkApp = 'gridline' | 'pixelline' | 'frameline' | 'beatline';
 
 export interface SuiteApp {
   id: SuiteAppId;
@@ -16,7 +16,7 @@ export interface SuiteApp {
   download: string;
 }
 
-/** A file from Gridline's, Pixelline's or Frameline's recent list. */
+/** A file from Gridline's, Pixelline's, Frameline's or Beatline's recent list. */
 export interface SuiteFile {
   app: WorkApp;
   path: string;

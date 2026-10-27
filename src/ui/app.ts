@@ -1,9 +1,9 @@
 // The Baseline window: Home (start something, recent files), Create (every blank file and preset),
-// Files (everything Gridline, Pixelline and Frameline opened recently), Apps, and Settings.
+// Files (everything Gridline, Pixelline, Frameline and Beatline opened recently), Apps, and Settings.
 import * as L from 'lucide';
 import type { AppPaths, SuiteApp, SuiteAppId, SuiteFile } from '../shared/api';
 import { folderOf, matchesQuery, orderFiles } from '../shared/suiteFiles';
-import { APP_INFO, appMark, BLANK_IMAGE, BLANK_SHEET, BLANK_VIDEO, STARTERS, type Starter } from './catalog';
+import { APP_INFO, appMark, BLANK_BEAT, BLANK_IMAGE, BLANK_SHEET, BLANK_VIDEO, STARTERS, type Starter } from './catalog';
 import { h, icon, kbd } from './dom';
 import { Installs } from './installs';
 import { isDesktop, platform } from './platform';
@@ -14,7 +14,7 @@ import { Updates } from './updates';
 import { closePopovers, dialog, showMenu, toast, tooltip } from './widgets';
 
 export type Section = 'home' | 'create' | 'files' | 'apps';
-type FileFilter = 'all' | 'gridline' | 'pixelline' | 'frameline' | 'pinned';
+type FileFilter = 'all' | 'gridline' | 'pixelline' | 'frameline' | 'beatline' | 'pinned';
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
@@ -145,7 +145,7 @@ export class App {
   /** Custom app locations from Settings. */
   appPaths(): AppPaths {
     const out: AppPaths = {};
-    for (const id of ['gridline', 'pixelline', 'frameline'] as const) {
+    for (const id of ['gridline', 'pixelline', 'frameline', 'beatline'] as const) {
       const p = this.settings.str(`apps.${id}Path`);
       if (p) out[id] = p;
     }
@@ -343,6 +343,7 @@ export class App {
     if (featured !== 'pixelline') tiles.push(BLANK_SHEET, STARTERS.find((s) => s.id === 'gl-budget')!);
     if (featured !== 'gridline') tiles.push(BLANK_IMAGE, STARTERS.find((s) => s.id === 'px-block-or-item')!, STARTERS.find((s) => s.id === 'px-full-hd')!);
     if (featured === 'both' || featured === 'frameline') tiles.push(BLANK_VIDEO, STARTERS.find((s) => s.id === 'fl-vertical-video')!);
+    if (featured === 'both' || featured === 'beatline') tiles.push(BLANK_BEAT, STARTERS.find((s) => s.id === 'bt-hiphop')!);
     const card = this.installs.homeCard();
     this.main.append(
       h('h1', { class: 'bl-h1' }, greeting()),
@@ -356,7 +357,7 @@ export class App {
 
   private renderCreate(): void {
     this.main.append(h('h1', { class: 'bl-h1' }, 'Create'), h('p', { class: 'bl-sub' }, 'Pick a starting point. It opens in the app that makes it.'));
-    for (const id of ['gridline', 'pixelline', 'frameline'] as const) {
+    for (const id of ['gridline', 'pixelline', 'frameline', 'beatline'] as const) {
       const info = APP_INFO[id];
       const list = STARTERS.filter((s) => s.app === id);
       const cats = [...new Set(list.map((s) => s.category))];
@@ -369,8 +370,8 @@ export class App {
 
   private renderFiles(): void {
     const open = h('button', { class: 'btn primary', onclick: () => void this.openFromDisk() }, icon(L.FolderOpen, 16), 'Open a file…');
-    tooltip(open, 'Spreadsheets open in Gridline, images in Pixelline, video projects in Frameline', 'Ctrl+O');
-    this.main.append(h('div', { class: 'bl-row-head' }, h('div', null, h('h1', { class: 'bl-h1' }, 'Files'), h('p', { class: 'bl-sub' }, 'Everything you opened recently in Gridline, Pixelline and Frameline.')), h('div', { class: 'spacer' }), open), this.fileBlock());
+    tooltip(open, 'Spreadsheets open in Gridline, images in Pixelline, video projects in Frameline, music in Beatline', 'Ctrl+O');
+    this.main.append(h('div', { class: 'bl-row-head' }, h('div', null, h('h1', { class: 'bl-h1' }, 'Files'), h('p', { class: 'bl-sub' }, 'Everything you opened recently in Gridline, Pixelline, Frameline and Beatline.')), h('div', { class: 'spacer' }), open), this.fileBlock());
   }
 
   private renderSearch(): void {
@@ -395,7 +396,7 @@ export class App {
       ),
     );
     const grid = h('div', { class: 'app-grid' });
-    for (const id of ['gridline', 'pixelline', 'frameline', 'baseline'] as const) {
+    for (const id of ['gridline', 'pixelline', 'frameline', 'beatline', 'baseline'] as const) {
       const a = this.app(id);
       const info = APP_INFO[id];
       const releases = a?.download ?? `https://github.com/LucasHeh47/${id}/releases`;
@@ -419,7 +420,7 @@ export class App {
             if (await platform.launch(id, [], this.appPaths())) toast(`Opening ${info.name}…`);
             else this.notInstalled(id);
           } }, 'Open');
-          const create = h('button', { class: 'btn outline', onclick: () => void this.start(id === 'gridline' ? BLANK_SHEET : id === 'pixelline' ? BLANK_IMAGE : BLANK_VIDEO) }, icon(L.Plus, 15), `New ${info.noun}`);
+          const create = h('button', { class: 'btn outline', onclick: () => void this.start(id === 'gridline' ? BLANK_SHEET : id === 'pixelline' ? BLANK_IMAGE : id === 'frameline' ? BLANK_VIDEO : BLANK_BEAT) }, icon(L.Plus, 15), `New ${info.noun}`);
           actions = [open, create];
           if (st?.update && !st.portable) actions.unshift(h('button', { class: 'btn primary', onclick: () => void ins.install([id]) }, icon(L.Download, 15), 'Update'));
           else if (st?.update) {
@@ -485,12 +486,12 @@ export class App {
         this.filter = id;
         this.render();
       } }, label);
-    const counts = { gridline: this.files.filter((f) => f.app === 'gridline').length, pixelline: this.files.filter((f) => f.app === 'pixelline').length, frameline: this.files.filter((f) => f.app === 'frameline').length, pinned: this.files.filter((f) => f.pinned).length };
+    const counts = { gridline: this.files.filter((f) => f.app === 'gridline').length, pixelline: this.files.filter((f) => f.app === 'pixelline').length, frameline: this.files.filter((f) => f.app === 'frameline').length, beatline: this.files.filter((f) => f.app === 'beatline').length, pinned: this.files.filter((f) => f.pinned).length };
     const head = h(
       'div',
       { class: 'bl-row-head' },
       h('h2', null, this.query ? 'Files' : 'Recent'),
-      h('div', { class: 'chips' }, chip('all', 'All'), chip('gridline', `Spreadsheets${counts.gridline ? ` (${counts.gridline})` : ''}`), chip('pixelline', `Images${counts.pixelline ? ` (${counts.pixelline})` : ''}`), chip('frameline', `Videos${counts.frameline ? ` (${counts.frameline})` : ''}`), chip('pinned', `Pinned${counts.pinned ? ` (${counts.pinned})` : ''}`)),
+      h('div', { class: 'chips' }, chip('all', 'All'), chip('gridline', `Spreadsheets${counts.gridline ? ` (${counts.gridline})` : ''}`), chip('pixelline', `Images${counts.pixelline ? ` (${counts.pixelline})` : ''}`), chip('frameline', `Videos${counts.frameline ? ` (${counts.frameline})` : ''}`), chip('beatline', `Music${counts.beatline ? ` (${counts.beatline})` : ''}`), chip('pinned', `Pinned${counts.pinned ? ` (${counts.pinned})` : ''}`)),
     );
     const list = this.visibleFiles(limit);
     const wrap = h('section', { class: 'bl-files' }, head);
@@ -500,7 +501,7 @@ export class App {
         : this.filter === 'pinned'
           ? 'Pin files you use often and they stay at the top. Point at a file and click the pin.'
           : isDesktop
-            ? 'Files you open or save in Gridline, Pixelline and Frameline show up here.'
+            ? 'Files you open or save in Gridline, Pixelline, Frameline and Beatline show up here.'
             : 'Recent files are listed in the desktop app.';
       wrap.append(h('div', { class: 'bl-empty' }, icon(this.filter === 'pinned' ? L.Pin : L.Clock, 28), h('p', null, msg)));
       return wrap;

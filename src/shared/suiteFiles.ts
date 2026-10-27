@@ -6,12 +6,14 @@ export const OPENS: Record<WorkApp, RegExp> = {
   gridline: /\.(xlsx|xlsm|csv|tsv)$/i,
   pixelline: /\.(png|jpe?g|webp|gif|bmp|ico|ora|psd)$/i,
   frameline: /\.frameline$/i,
+  beatline: /\.beatline$/i,
 };
 
 export function appFor(path: string): WorkApp | null {
   if (OPENS.gridline.test(path)) return 'gridline';
   if (OPENS.pixelline.test(path)) return 'pixelline';
   if (OPENS.frameline.test(path)) return 'frameline';
+  if (OPENS.beatline.test(path)) return 'beatline';
   return null;
 }
 
