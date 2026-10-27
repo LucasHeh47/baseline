@@ -1,7 +1,7 @@
 {
   "name": "baseline",
   "productName": "Baseline",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Home for your apps and files: start a spreadsheet in Gridline or an image in Pixelline, and reopen recent work from both.",
   "main": "dist-electron/main.js",
   "private": true,

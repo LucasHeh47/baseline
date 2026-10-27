@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- **Checking for updates** no longer says "Something went wrong" when there's no new regular release yet (or one is still being published): it says you're up to date.
+
 ## 0.1.0
 
 The first version of Baseline, the home for Gridline, Pixelline, Frameline and Beatline.
